@@ -28,17 +28,28 @@ loader = transforms.Compose([
     transforms.Resize((imsize,imsize)),  # scale imported image
     transforms.ToTensor()])  # transform it into a torch tensor
 
-
 def image_loader(image_name):
     image = Image.open(image_name)
+    imgsize=image.size
     image = Variable(loader(image))
     # fake batch dimension required to fit network's input dimensions
     image = image.unsqueeze(0)
-    return image
+    return image,imgsize
 
 
-style_img = image_loader("Img/style/style5.jpg").type(dtype)
-content_img = image_loader("Img/content/cont2.jpg").type(dtype)
+style_img,(imgwidth,imgheight) = image_loader("Img/style/style4.jpg")[0].type(dtype),image_loader("Img/style/style5.jpg")[1]
+content_img = image_loader("Img/content/cont2.jpg")[0].type(dtype)
+
+unloader_forlocal = transforms.Compose([
+    transforms.ToPILImage(),
+    transforms.Resize((imgheight,imgwidth))
+])
+
+def image_unloader(image_name,image_tensor):
+    image = image_tensor.cpu().clone()
+    image = image.squeeze(0)
+    image = unloader_forlocal(image)
+    image.save(image_name)
 
 assert style_img.size() == content_img.size(), \
     "we need to import style and content images of the same size"
@@ -59,6 +70,7 @@ def imshow(tensor, title=None):
     if title is not None:
         plt.title(title)
     plt.pause(0.001) # pause a bit so that plots are updated
+
 
 
 plt.figure()
@@ -289,6 +301,8 @@ output = run_style_transfer(cnn, content_img, style_img, input_img)
 
 plt.figure()
 imshow(output, title='Output Image')
+
+image_unloader("Img/result/rslt.jpg",output)
 
 # sphinx_gallery_thumbnail_number = 4
 plt.ioff()
